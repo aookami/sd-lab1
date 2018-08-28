@@ -22,6 +22,7 @@ public class Participant {
 		
 		try {
 			msckt = new MulticastSocket();
+			aHost = InetAddress.getByName("127.0.0.1");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
