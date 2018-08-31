@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Participant {
 
@@ -14,26 +16,39 @@ public class Participant {
 	InetAddress aHost;
 
 	public String publickey;
+	
+	List<ParticipantInfo> peers = new ArrayList<>();
 
 	MulticastSocket msckt;
-	Thread listener = new Thread(){
+	Thread listener = new Thread() {
 		@Override
-		public void run(){
+		public void run() {
 			MulticastSocket socket;
 			InetAddress group;
-
+			String input = "";
 			try {
 				group = InetAddress.getByName("224.24.24.42");
 				socket = new MulticastSocket(4446);
 				socket.joinGroup(group);
-				listenToMc(socket, group);
+				input = listenToMc(socket, group);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+
+		
 			}
+
+			//Input handling code - inputs are always who:what:objectofwhat
+			
+			if(input.split(":")[1].equals("ENTER")){
+				ParticipantInfo newpeer = new ParticipantInfo(Integer.valueOf(input.split(":")[0]), input.split(":")[2]);
+				peers.add(newpeer);
+				
+				
+			}
+			
 		}
 	};
 	
+
 	Participant(int name) {
 		this.name = name;
 		privatekey = String.valueOf(Integer.valueOf(name) * Integer.valueOf(name) % 50000);
@@ -49,6 +64,27 @@ public class Participant {
 		listener.start();
 	}
 
+	void send(String input,int who) {
+
+		String a = String.valueOf(name);
+		String b = "PUBLICKEY";
+
+		String sc = a + ":" + b + ":" + publickey + ":");
+		byte[] c = sc.getBytes();
+		try {
+
+			DatagramPacket p = new DatagramPacket(c, c.length, aHost, 4446);
+
+			msckt.send(p);
+
+		} catch (Exception e) {
+			System.out.println("Exception at sending multicast datapcket");
+
+			System.out.println(e.getMessage() + "AAAAAAAa");
+		}
+
+	}
+	
 	void enterRoom() {
 
 		String a = String.valueOf(name);
@@ -57,12 +93,14 @@ public class Participant {
 		String sc = a + ":" + b + ":" + publickey;
 		byte[] c = sc.getBytes();
 		try {
-		
+
 			DatagramPacket p = new DatagramPacket(c, c.length, aHost, 4446);
 
 			msckt.send(p);
 
 		} catch (Exception e) {
+			System.out.println("Exception at sending multicast datapcket");
+
 			System.out.println(e.getMessage() + "AAAAAAAa");
 		}
 
@@ -73,7 +111,7 @@ public class Participant {
 		String b = "EXIT";
 		String sc = a + ":" + b;
 		byte[] c = sc.getBytes();
-		
+
 		DatagramPacket p = new DatagramPacket(c, c.length, aHost, 4446);
 		try {
 			msckt.send(p);
@@ -82,25 +120,25 @@ public class Participant {
 		}
 	}
 
-	void listenToMc(MulticastSocket socket, InetAddress group) {
+	String listenToMc(MulticastSocket socket, InetAddress group) {
 		while (true) {
 			byte[] buf = new byte[256];
 			DatagramPacket pkct = new DatagramPacket(buf, buf.length);
 			try {
 				socket.receive(pkct);
-				
+
 			} catch (IOException e) {
 				System.out.println("IOException at listenToMc");
 
 			}
 
 			String received = new String(pkct.getData());
-			
-			if(received.split(":")[0].equals(String.valueOf(name))){
+
+			if (received.split(":")[0].equals(String.valueOf(name))) {
 				continue;
 			}
-			System.out.println(String.valueOf(name)  + " received: " + received);
-
+			System.out.println(String.valueOf(name) + " received: " + received);
+			return received;
 		}
 	}
 }
