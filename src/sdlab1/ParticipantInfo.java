@@ -8,10 +8,10 @@ public class ParticipantInfo {
 	
 	ParticipantInfo(int name, String key){
 		this.name = name;
-		this.publicKey = key;
+		this.publicKey = key;  
 		
 		
-	}
+	} 
 
 	public int getName() {
 		return name;

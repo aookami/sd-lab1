@@ -69,7 +69,7 @@ public class Participant {
 		String a = String.valueOf(name);
 		String b = "PUBLICKEY";
 
-		String sc = a + ":" + b + ":" + publickey + ":");
+		String sc = a + ":" + b + ":" + publickey + ":";
 		byte[] c = sc.getBytes();
 		try {
 
