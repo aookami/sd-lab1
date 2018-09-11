@@ -5,8 +5,29 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
+import java.util.Scanner;
 
 public class MainControl {
+	static Thread input = new Thread("input") {
+		@Override
+		public void run() {
+			while (true) {
+
+				Scanner reader = new Scanner(System.in); // Reading from System.in
+				System.out.println("Enter a number: ");
+				String n = null;
+				try {
+					n = reader.nextLine(); // Scans the next token of the input as an int.					
+				}catch (Exception e) {
+					continue;
+				}
+				// once finished
+				reader.close();
+				System.out.println(n);
+			}
+
+		}
+	};
 
 	static Thread t0 = new Thread("MC") {
 		@Override
@@ -30,28 +51,101 @@ public class MainControl {
 	static Thread t1 = new Thread("Vash") {
 		@Override
 		public void run() {
-			Participant t1 = new Participant(113);
+			Participant t1 = new Participant(300);
+			t1.enterRoom();
+			
+			t1.requestR1();
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			t1.exitRoom();
+
+		}
+	};
+
+	static Thread t2 = new Thread("Giro") {
+		@Override
+		public void run() {
+			Participant t2 = new Participant(500);
+
+			t2.enterRoom();
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			//t2.exitRoom();
+
+		}
+	};
+
+	static Thread t3 = new Thread("Tobi") {
+		@Override
+		public void run() {
+			Participant t3 = new Participant(730);
 			try {
 				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			t1.enterRoom();
-			t1.exitRoom();
+			t3.enterRoom();
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	
 
 		}
 	};
-
-	public static void main(String[] args) { 
-
-			t0.start();
-
-			t1.start();
+	public static void main(String[] args) {
+		
+		MockResource r1 = new MockResource("r1");
+		
+		r1.r.start();
+		
+		
+		input.start();
+		t0.start();
+		try {
+			Thread.sleep(150);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		t1.start();
+		try {
+			Thread.sleep(150);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		//t2.start();
+		try {
+			Thread.sleep(150);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		//t3.start();
+		
+		
 
 	}
 
-	static void listenToMc(MulticastSocket socket, InetAddress group) {
+	synchronized static void  listenToMc(MulticastSocket socket, InetAddress group) {
 		while (true) {
 			byte[] buf = new byte[256];
 			DatagramPacket pkct = new DatagramPacket(buf, buf.length);
