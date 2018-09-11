@@ -54,9 +54,17 @@ public class MainControl {
 			Participant t1 = new Participant(300);
 			t1.enterRoom();
 			
-			t1.requestR1();
+			
 			try {
-				Thread.sleep(5000);
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			t1.requestR1();
+			
+			try {
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -78,6 +86,7 @@ public class MainControl {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			t2.requestR1();
 			try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {
@@ -94,19 +103,22 @@ public class MainControl {
 		public void run() {
 			Participant t3 = new Participant(730);
 			try {
-				Thread.sleep(2000);
+				Thread.sleep(150);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			t3.enterRoom();
+			
 			try {
-				Thread.sleep(500);
+				Thread.sleep(15000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-	
+			t3.requestR1();
+			
+			
 
 		}
 	};
@@ -132,14 +144,14 @@ public class MainControl {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		//t2.start();
+		t2.start();
 		try {
 			Thread.sleep(150);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		//t3.start();
+		t3.start();
 		
 		
 

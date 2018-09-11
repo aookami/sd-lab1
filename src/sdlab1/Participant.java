@@ -17,9 +17,15 @@ public class Participant {
 	InetAddress aHost;
 
 	public String publickey;
-
+	boolean listening;
 	boolean didIRequestR1 = false;
 	boolean didIRequestR2 = false;
+	
+	boolean didIRequestR1Q = false;
+	boolean didIRequestR2Q = false;
+	
+	boolean waitingR1Reply = false;
+	boolean receivedR1Reply = false;
 
 	List<ParticipantInfo> peers = new ArrayList<>();
 
@@ -42,9 +48,11 @@ public class Participant {
 					group = InetAddress.getByName("224.24.24.42");
 					socket = new MulticastSocket(4446);
 					socket.joinGroup(group);
+					listening = true;
 					input = listenToMc(socket, group);
 				} catch (Exception e) {
-					System.out.println("EEEEEEXp");
+					System.out.println(String.valueOf(name) + "EXCEPTION");
+					System.out.println(e.getMessage());
 				}
 
 				// Input handling code - inputs are always who:what:objectofwhat
@@ -68,7 +76,13 @@ public class Participant {
 		t.start();
 	}
 
-	void send(String input, int target, String dataId, String what) {
+	synchronized void send(String input, int target, String dataId, String what) {
+		try {
+			Thread.sleep(150);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		String myname = String.valueOf(name);
 
@@ -84,19 +98,7 @@ public class Participant {
 		}
 
 		String sc = myname + ":" + what + ":" + String.valueOf(target) + ":" + dataId + ":" + targetPk + ":";
-
-		byte[] c = sc.getBytes();
-		try {
-
-			DatagramPacket p = new DatagramPacket(c, c.length, aHost, 4446);
-
-			msckt.send(p);
-
-		} catch (Exception e) {
-			System.out.println(name + "Exception at sending multicast datapcket");
-
-			System.out.println(name + e.getMessage() + "AAAAAAAa");
-		}
+		send(sc);
 
 	}
 
@@ -118,18 +120,7 @@ public class Participant {
 		String b = "ENTER";
 
 		String sc = a + ":" + b + ":" + publickey;
-		byte[] c = sc.getBytes();
-		try {
-
-			DatagramPacket p = new DatagramPacket(c, c.length, aHost, 4446);
-
-			msckt.send(p);
-
-		} catch (Exception e) {
-			System.out.println(name + "Exception at sending multicast datapcket");
-
-			System.out.println(name + e.getMessage() + "AAAAAAAa");
-		}
+		send(sc);
 
 	}
 
@@ -137,20 +128,14 @@ public class Participant {
 		String a = String.valueOf(name);
 		String b = "EXIT";
 		String sc = a + ":" + b;
-		byte[] c = sc.getBytes();
-
-		DatagramPacket p = new DatagramPacket(c, c.length, aHost, 4446);
-		try {
-			msckt.send(p);
-		} catch (IOException e) {
-			System.out.println(name + "IOException at " + name + " send enter msg	");
-		}
+		send(sc);
+		
+		listening = false;
+		
 	}
-
-	void requestR1() {
-		didIRequestR1 = true;
-		String a = String.valueOf(name) + ":" + "r1REQ";
-		byte[] c = a.getBytes();
+	
+	void send(String msg) { 
+		byte[] c = msg.getBytes();
 
 		DatagramPacket p = new DatagramPacket(c, c.length, aHost, 4446);
 		try {
@@ -162,23 +147,57 @@ public class Participant {
 
 	}
 
+	void requestR1() {
+		
+		if(r1queue.isEmpty()) {
+			requestR1Queue();
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		if(r1queue.isEmpty() || r1queue.get(0) == name) {
+			requestR1();
+		}
+		
+		didIRequestR1 = true;
+		
+		send(String.valueOf(name) + ":r1REQ");
+		
+	}
+	
+	void requestR1Queue(){
+		send(name + ":" + "r1REQueue");
+		didIRequestR1Q = true;
+		
+	} 
+	
+	void sendr1Queue() {
+		StringBuilder queue = new StringBuilder();
+		
+		for(int x : r1queue) {
+			queue.append(String.valueOf(x) + "\\.");
+		}
+		
+	
+		send(name + ":r1Queue:" + queue.toString());
+		
+	}
 	void replyr1User() {
 		if (!r1queue.isEmpty()) {
 			String a = String.valueOf(name) + ":" + "r1USR" + ":" + r1queue.get(0);
-			byte[] c = a.getBytes();
-
-			DatagramPacket p = new DatagramPacket(c, c.length, aHost, 4446);
-			try {
-				msckt.send(p);
-
-			} catch (IOException e) {
-				System.out.println(name + "IOException at " + name + " send enter msg	");
-			}
+			send(a);
 		}
 	}
 
 	synchronized String listenToMc(MulticastSocket socket, InetAddress group) {
+		
 		while (true) {
+			
+			
 			byte[] buf = new byte[256];
 			DatagramPacket pkct = new DatagramPacket(buf, buf.length);
 			try {
@@ -190,14 +209,37 @@ public class Participant {
 			}
 
 			String received = new String(pkct.getData());
+			System.out.println(name + " received: " + received);
+			
+			if(didIRequestR1Q) {
+				if(received.contains("r1QUEUE")) {
+					r1queue = new LinkedList<>();
+					for(String x : received.split(":")[2].split("\\.")) {
+						r1queue.add(Integer.valueOf(x));
+					}
+				}
+				didIRequestR1Q = false;
 
-			if (didIRequestR1) {
+			}
+			
+
+			if (didIRequestR1) {	
 				if (received.contains(String.valueOf("r1")) && received.contains(String.valueOf(name))
 						&& received.contains("FAILED")) {
 						System.out.println(String.valueOf(name) + " denied r1");
+						try {
+							Thread.sleep(5000);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						requestR1();
+						
+
 				}
-				else if(received.contains(String.valueOf("r1")) && received.contains(String.valueOf(name))
+				else if(received.contains("r1") && received.contains(String.valueOf(name))
 						&& received.contains("TRUE")) {
+					System.out.println(name + " USING r1");
 					try {
 						Thread.sleep(5000);
 					} catch (InterruptedException e) {
@@ -205,10 +247,19 @@ public class Participant {
 						e.printStackTrace();
 					}
 					System.out.println(String.valueOf(name ) + "USED r1");
+					didIRequestR1 = false;
+
 				}
 			}
 
 			if (received.split(":")[0].contains(String.valueOf(name))) {
+				
+				if(received.contains("EXIT")) {
+					System.out.println(String.valueOf(name) + "EXITING");
+					break;
+				}
+				
+				
 				continue;
 			} else {
 				if (received.split(":")[1].contains("r1REQ")) {
@@ -251,16 +302,12 @@ public class Participant {
 				}
 
 			}
-			try {
-				Thread.sleep(150);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			
 
-			System.out.println(name + " received: " + received);
 
 		}
+		
+		return("");
 	}
 
 	public void printList() {
